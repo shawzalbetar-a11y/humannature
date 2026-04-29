@@ -1,0 +1,13 @@
+[build]
+  # Set the base directory for the Next.js storefront
+  base = "muman-nature"
+  
+  # The build command runs in the context of the base directory
+  command = "npm run build"
+  
+  # The directory to publish, relative to the base directory
+  publish = ".next"
+
+[build.environment]
+  # Node.js version needed for Next.js 15
+  NODE_VERSION = "20"
