@@ -1,8 +1,0 @@
-{
-  "theme": "human-nature",
-  "lintOnSave": true,
-  "hooks": {
-    "preCommit": "npm run lint",
-    "prePush": "npm run build"
-  }
-}
