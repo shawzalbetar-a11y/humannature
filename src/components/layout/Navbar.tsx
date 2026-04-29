@@ -103,7 +103,7 @@ export function Navbar() {
 
   // Build the combined nav links: static + dynamic categories
   const navLinks: NavLink[] = [
-    { id: "home", href: routes.home, label: "Ana Sayfa" },
+    { id: "home", href: "/ana-sayfa", label: "Ana Sayfa" },
     ...staticLinks,
     ...categoryLinks,
   ]
@@ -200,7 +200,7 @@ export function Navbar() {
           {/* ── Center: Desktop Navigation (absolutely centered) ── */}
           <nav className="hidden md:flex items-center justify-center flex-1">
             <div className="flex items-center gap-10">
-              {navLinks.slice(1).map((link) => {
+              {navLinks.map((link) => {
                 const isActive = pathname === link.href || pathname.startsWith(link.href + "/")
                 return (
                   <Link

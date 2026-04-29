@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Heart, ShoppingBag } from "lucide-react";
+import { Heart, ShoppingBag, Share2 } from "lucide-react";
 import { memo, useState } from "react"; // eslint-disable-line @typescript-eslint/no-unused-vars
 import { useCartStore } from "@/store/cartStore";
 import { useFavoritesStore } from "@/store/favoritesStore";
@@ -16,6 +16,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 /* ───────────────────────── Types ───────────────────────── */
 
@@ -136,6 +137,69 @@ export const ProductCard = memo(function ProductCard({
     onAddToCart?.(id);
   };
 
+  const handleShareClick = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const shareUrl = `${window.location.origin}${productHref || routes.product(id)}`;
+    const shareData = {
+      title: title,
+      text: `${title} - Human Nature`,
+      url: shareUrl,
+    };
+
+    const copyToClipboard = async (text: string): Promise<boolean> => {
+      // Modern Clipboard API (HTTPS / secure contexts)
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        try {
+          await navigator.clipboard.writeText(text);
+          return true;
+        } catch {
+          // fall through to legacy method
+        }
+      }
+      // Legacy fallback (HTTP / older browsers)
+      try {
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        const success = document.execCommand("copy");
+        document.body.removeChild(textarea);
+        return success;
+      } catch {
+        return false;
+      }
+    };
+
+    try {
+      if (navigator.share && navigator.canShare?.(shareData)) {
+        await navigator.share(shareData);
+      } else {
+        const copied = await copyToClipboard(shareUrl);
+        if (copied) {
+          toast.success("Bağlantı kopyalandı", {
+            description: "Ürün bağlantısı başarıyla panoya kopyalandı.",
+          });
+        } else {
+          toast.error("Kopyalanamadı", {
+            description: "Lütfen bağlantıyı manuel olarak kopyalayın: " + shareUrl,
+          });
+        }
+      }
+    } catch (err) {
+      if ((err as Error).name !== "AbortError") {
+        const copied = await copyToClipboard(shareUrl);
+        if (copied) {
+          toast.success("Bağlantı kopyalandı");
+        }
+      }
+    }
+  };
+
   /* ── Discount percentage ── */
   const discountPercent =
     originalPrice > discountPrice
@@ -162,10 +226,10 @@ export const ProductCard = memo(function ProductCard({
         <button
           onClick={handleFavoriteClick}
           aria-label={favorite ? "Favorilerden çıkar" : "Favorilere ekle"}
-          className="absolute top-3 right-3 z-20 w-9 h-9 flex items-center justify-center rounded-full bg-white/90 backdrop-blur-sm shadow-md hover:bg-white transition-colors duration-200 touch-manipulation"
+          className="absolute top-3 right-3 z-20 w-8 h-8 flex items-center justify-center rounded-full bg-white/90 backdrop-blur-sm shadow-md hover:bg-white transition-colors duration-200 touch-manipulation"
         >
           <Heart
-            className={`w-[18px] h-[18px] transition-colors duration-200 ${
+            className={`w-4 h-4 transition-colors duration-200 ${
               favorite
                 ? "fill-red-500 text-red-500"
                 : "fill-none text-neutral-500 hover:text-red-400"
@@ -179,73 +243,6 @@ export const ProductCard = memo(function ProductCard({
             %{discountPercent}
           </span>
         )}
-
-        {/* ── Bottom overlay area (color badge + cart icon + external platforms) ── */}
-        <div 
-          className="absolute inset-x-0 bottom-0 z-10 flex items-center justify-between px-2 pointer-events-none" 
-          style={{ paddingBottom: bannerText ? "40px" : "8px" }}
-        >
-          {/* Left side: External Platforms + Colors inside a pill */}
-          <div className="flex items-center gap-1.5 bg-white/95 backdrop-blur-sm rounded-full p-1 shadow-md pointer-events-auto">
-            {trendyolUrl && (
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setActiveExternalPlatform("trendyol");
-                  setExternalModalOpen(true);
-                }}
-                className="w-7 h-7 flex items-center justify-center rounded-full bg-[#F27A1A] hover:bg-[#d66a15] transition-colors"
-                title="Trendyol'da Gör"
-              >
-                <span className="text-[10px] font-bold text-white tracking-tighter">TY</span>
-              </button>
-            )}
-            
-            {shopierUrl && (
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setActiveExternalPlatform("shopier");
-                  setExternalModalOpen(true);
-                }}
-                className="w-7 h-7 flex items-center justify-center rounded-full bg-[#1A8B9D] hover:bg-[#146c7a] transition-colors"
-                title="Shopier'de Gör"
-              >
-                <span className="text-[10px] font-bold text-white tracking-tighter">SH</span>
-              </button>
-            )}
-
-            {colorCount && colorCount > 0 && (
-              <div className="flex items-center gap-1.5 px-2">
-                <span
-                  className="w-3.5 h-3.5 rounded-full shrink-0"
-                  style={{
-                    background:
-                      "conic-gradient(#e74c3c, #f39c12, #2ecc71, #3498db, #9b59b6, #e74c3c)",
-                  }}
-                />
-                <span className="text-[10px] font-medium text-neutral-700 whitespace-nowrap">
-                  {colorCount} Renk
-                </span>
-              </div>
-            )}
-            {/* If no items to show, provide some width to maintain the pill shape slightly, or don't render it. */}
-            {!trendyolUrl && !shopierUrl && (!colorCount || colorCount === 0) && (
-              <div className="hidden" />
-            )}
-          </div>
-
-          {/* Right side: Cart icon */}
-          <button
-            onClick={handleCartClick}
-            aria-label="Sepete ekle"
-            className="w-9 h-9 flex shrink-0 items-center justify-center rounded-full bg-white/95 backdrop-blur-sm shadow-md hover:bg-white transition-colors duration-200 pointer-events-auto touch-manipulation"
-          >
-            <ShoppingBag className="w-[18px] h-[18px] text-neutral-700" />
-          </button>
-        </div>
 
         {/* ── Banner (bottom edge of image) ── */}
         {bannerText && (
@@ -265,8 +262,71 @@ export const ProductCard = memo(function ProductCard({
         )}
       </div>
 
+      {/* ═══════════ ICONS ROW (outside image, always fully visible) ═══════════ */}
+      <div className="flex items-center justify-between gap-1 px-2 py-2 bg-neutral-50 border-t border-neutral-100">
+
+        {/* Left: TY + SH + Colors */}
+        <div className="flex items-center gap-1 min-w-0 flex-shrink">
+          {trendyolUrl && (
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setActiveExternalPlatform("trendyol");
+                setExternalModalOpen(true);
+              }}
+              className="w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-full bg-[#F27A1A] hover:bg-[#d66a15] transition-colors touch-manipulation"
+              title="Trendyol'da Gör"
+            >
+              <span className="text-[9px] font-bold text-white">TY</span>
+            </button>
+          )}
+
+          {shopierUrl && (
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setActiveExternalPlatform("shopier");
+                setExternalModalOpen(true);
+              }}
+              className="w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-full bg-[#1A8B9D] hover:bg-[#146c7a] transition-colors touch-manipulation"
+              title="Shopier'de Gör"
+            >
+              <span className="text-[9px] font-bold text-white">SH</span>
+            </button>
+          )}
+
+          {colorCount && colorCount > 0 && (
+            <div className="flex items-center gap-1 min-w-0">
+              <span
+                className="w-3 h-3 rounded-full flex-shrink-0"
+                style={{
+                  background:
+                    "conic-gradient(#e74c3c, #f39c12, #2ecc71, #3498db, #9b59b6, #e74c3c)",
+                }}
+              />
+              <span className="text-[10px] font-medium text-neutral-600 whitespace-nowrap">
+                {colorCount} Renk
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Right: Cart only */}
+        <div className="flex items-center flex-shrink-0">
+          <button
+            onClick={handleCartClick}
+            aria-label="Sepete ekle"
+            className="w-8 h-8 flex items-center justify-center rounded-full bg-neutral-900 hover:bg-neutral-700 transition-colors touch-manipulation shadow-sm"
+          >
+            <ShoppingBag className="w-4 h-4 text-white" />
+          </button>
+        </div>
+      </div>
+
       {/* ═══════════ PRODUCT DETAILS ═══════════ */}
-      <div className="flex flex-col items-center px-3 pt-3 pb-2 space-y-1.5">
+      <div className="flex flex-col items-center px-3 pt-2 pb-2 space-y-1">
         {/* Title */}
         <Link
           href={productHref || routes.product(id)}
@@ -276,16 +336,26 @@ export const ProductCard = memo(function ProductCard({
         </Link>
 
         {/* Pricing row */}
-        <div className="flex items-center justify-center gap-2.5">
+        <div className="flex items-center justify-center gap-2 flex-wrap">
           {originalPrice > discountPrice && (
-            <span className="text-sm text-neutral-400 line-through">
+            <span className="text-xs text-neutral-400 line-through">
               {formatPrice(originalPrice)} {storeConfig.currency.symbol}
             </span>
           )}
-          <span className="text-base font-bold text-[#8b1a1a]">
+          <span className="text-sm font-bold text-[#8b1a1a]">
             {formatPrice(discountPrice)} {storeConfig.currency.symbol}
           </span>
         </div>
+
+        {/* Share button */}
+        <button
+          onClick={handleShareClick}
+          aria-label="Ürünü paylaş"
+          className="flex items-center gap-1 text-[10px] text-neutral-400 hover:text-neutral-600 transition-colors touch-manipulation py-0.5"
+        >
+          <Share2 className="w-3 h-3" />
+          <span>Paylaş</span>
+        </button>
       </div>
 
       {/* ── Cart price banner (red) ── */}

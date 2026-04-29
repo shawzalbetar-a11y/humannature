@@ -4,8 +4,9 @@ import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { ShoppingBag, Heart, Ruler, Check } from "lucide-react";
+import { ShoppingBag, Heart, Ruler, Check, Share2 } from "lucide-react";
 import { useCartStore } from "@/store/cartStore";
+import { useFavoritesStore } from "@/store/favoritesStore";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
@@ -156,6 +157,76 @@ export function ProductInfo({ product, colorSiblings = [], currentSlug, sectionH
         onClick: () => router.push(routes.cart),
       },
     });
+  };
+
+  const isFavorite = useFavoritesStore((state) => state.isFavorite(product.id));
+  const toggleFavorite = useFavoritesStore((state) => state.toggleFavorite);
+
+  const handleFavoriteToggle = async () => {
+    await toggleFavorite(product.id);
+    if (!isFavorite) {
+      toast.success("Favorilere eklendi");
+    } else {
+      toast("Favorilerden çıkarıldı");
+    }
+  };
+
+  const handleShareClick = async () => {
+    const shareUrl = window.location.href;
+    const shareData = {
+      title: product.name,
+      text: `${product.name} - Human Nature`,
+      url: shareUrl,
+    };
+
+    const copyToClipboard = async (text: string): Promise<boolean> => {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        try {
+          await navigator.clipboard.writeText(text);
+          return true;
+        } catch {
+          // fall through
+        }
+      }
+      try {
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        const success = document.execCommand("copy");
+        document.body.removeChild(textarea);
+        return success;
+      } catch {
+        return false;
+      }
+    };
+
+    try {
+      if (navigator.share && navigator.canShare?.(shareData)) {
+        await navigator.share(shareData);
+      } else {
+        const copied = await copyToClipboard(shareUrl);
+        if (copied) {
+          toast.success("Bağlantı kopyalandı", {
+            description: "Ürün bağlantısı başarıyla panoya kopyalandı.",
+          });
+        } else {
+          toast.error("Kopyalanamadı", {
+            description: "Lütfen bağlantıyı manuel olarak kopyalayın: " + shareUrl,
+          });
+        }
+      }
+    } catch (err) {
+      if ((err as Error).name !== "AbortError") {
+        const copied = await copyToClipboard(shareUrl);
+        if (copied) {
+          toast.success("Bağlantı kopyalandı");
+        }
+      }
+    }
   };
 
   return (
@@ -368,11 +439,20 @@ export function ProductInfo({ product, colorSiblings = [], currentSlug, sectionH
           {isInStock ? "Sepete Ekle" : "Stokta Yok"}
         </Button>
         <Button 
+          onClick={handleFavoriteToggle}
           variant="outline" 
           size="icon" 
           className="min-h-[56px] w-full sm:w-14 shrink-0 rounded-none border-white/20 bg-transparent text-white hover:bg-white/10 hover:border-white/50 transition-all active:scale-95 cursor-pointer"
         >
-          <Heart className="w-6 h-6" />
+          <Heart className={cn("w-6 h-6", isFavorite ? "fill-red-500 text-red-500" : "text-white")} />
+        </Button>
+        <Button 
+          onClick={handleShareClick}
+          variant="outline" 
+          size="icon" 
+          className="min-h-[56px] w-full sm:w-14 shrink-0 rounded-none border-white/20 bg-transparent text-white hover:bg-white/10 hover:border-white/50 transition-all active:scale-95 cursor-pointer"
+        >
+          <Share2 className="w-6 h-6" />
         </Button>
       </div>
 

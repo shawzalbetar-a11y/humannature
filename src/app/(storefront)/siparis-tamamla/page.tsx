@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useCartStore } from "@/store/cartStore";
-import { collection, query, getDocs, addDoc, serverTimestamp, doc, getDoc, orderBy, where } from "firebase/firestore";
+import { collection, query, getDocs, addDoc, serverTimestamp, doc, getDoc, setDoc, orderBy, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { MapPin, Plus, ShoppingBag, CheckCircle, ShieldCheck, X, Copy, ExternalLink } from "lucide-react";
 import Image from "next/image";
@@ -148,9 +148,16 @@ export default function CheckoutPage() {
       status: method === "cod" ? "Onay Bekleniyor" : "Ödeme Bekleniyor",
       paymentMethod: method,
       address: selectedAddress,
+      isRead: false,
       createdAt: serverTimestamp(),
     };
-    await addDoc(collection(db, "orders"), orderData);
+    const orderRef = await addDoc(collection(db, "orders"), orderData);
+    
+    // Save a copy inside the user's specific subcollection "customer_orders"
+    if (user && user.uid) {
+      await setDoc(doc(db, "users", user.uid, "customer_orders", orderRef.id), orderData);
+    }
+    
     clearCart();
     return { orderId, enrichedItems };
   };
@@ -189,11 +196,34 @@ export default function CheckoutPage() {
     } catch (e) { console.error(e); alert("Bir hata oluştu."); setPlacingOrder(false); }
   };
 
-  const copyText = (text: string, field: string) => {
+  const copyText = async (text: string, field: string) => {
     if (!text) return;
-    navigator.clipboard.writeText(text);
-    setCopiedField(field);
-    setTimeout(() => setCopiedField(null), 2000);
+    let success = false;
+    // Modern Clipboard API (HTTPS / secure contexts)
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      try {
+        await navigator.clipboard.writeText(text);
+        success = true;
+      } catch { /* fall through */ }
+    }
+    // Legacy fallback (HTTP / older browsers)
+    if (!success) {
+      try {
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        success = document.execCommand("copy");
+        document.body.removeChild(textarea);
+      } catch { /* ignore */ }
+    }
+    if (success) {
+      setCopiedField(field);
+      setTimeout(() => setCopiedField(null), 2000);
+    }
   };
 
   // ── Auth Guard ──

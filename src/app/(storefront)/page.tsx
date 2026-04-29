@@ -1,64 +1,83 @@
-import { Button } from "@/components/ui/button";
-import { ChevronDown } from "lucide-react";
-import Link from "next/link";
-import Image from "next/image";
-import { FeaturedCategories } from "@/components/home/FeaturedCategories";
-import { TrendingProducts } from "@/components/home/TrendingProducts";
-import { routes } from "@/lib/routes";
+"use client"
+
+import { useEffect, useState } from "react"
+import { ProductCard } from "@/components/product/ProductCard"
+import { routes, slugify } from "@/lib/routes"
+import { getAllProducts } from "@/lib/firestore-cache"
+import { CatalogProduct } from "@/types"
 
 export default function StorefrontHome() {
-  return (
-    <div className="flex flex-col bg-black text-white w-full">
-      {/* Hero Section */}
-      <div className="relative flex flex-col items-center justify-center min-h-[100svh] md:min-h-screen overflow-hidden -mt-16 bg-black">
-        <div className="absolute inset-0 z-0 bg-black">
-          <Image 
-            src={routes.asset("/hero-banner.jpg")}
-            alt="HUMAN NATURE Premium Menswear"
-            fill
-            preload
-            className="object-cover object-[75%_center] md:object-center opacity-95"
-            sizes="100vw"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-black/30" />
+  const [products, setProducts] = useState<CatalogProduct[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const fetched = await getAllProducts()
+        setProducts(fetched)
+      } catch (error) {
+        console.error("Error fetching all products:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchProducts()
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="w-full min-h-screen bg-black pt-10 pb-24 border-t border-white/5">
+        <div className="container max-w-screen-2xl mx-auto px-4 md:px-8 mb-10">
+          <div className="h-10 max-w-[300px] bg-white/10 animate-pulse mb-3" />
+          <div className="h-5 max-w-[500px] bg-white/5 animate-pulse" />
+          <div className="h-px w-full bg-white/10 mt-6" />
         </div>
-
-        <div className="relative z-10 flex flex-col items-center justify-center text-center px-4 w-full h-full pt-16">
-          <div className="max-w-4xl space-y-6 md:space-y-8">
-            <span className="block text-xs sm:text-sm md:text-base font-semibold tracking-[0.18em] sm:tracking-[0.24em] md:tracking-[0.3em] uppercase text-white/70">
-              Zamana Meydan Okuyan Tasarımlar
-            </span>
-            <h1 className="text-4xl sm:text-5xl md:text-7xl font-extrabold tracking-tight text-white leading-[1.1]">
-              <span className="block">Tarzını</span>
-              <span className="block text-white/90 font-light mt-2">Yeniden Tanımla</span>
-            </h1>
-            
-            <p className="text-base sm:text-lg md:text-xl text-white/70 max-w-2xl mx-auto leading-relaxed font-light mt-6">
-              Modern beyefendiler için tasarlanmış seçkin premium erkek giyim koleksiyonumuzu keşfedin. Eşsiz kalite, lüks kumaşlar ve kusursuz kesim.
-            </p>
-
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 pt-8 sm:pt-10">
-              <Button render={<Link href={routes.allProducts} />} nativeButton={false} size="lg" className="w-full sm:w-auto h-14 px-6 sm:px-10 bg-white text-black hover:bg-white/90 rounded-none font-medium tracking-wide uppercase text-sm">
-                Koleksiyonu Keşfet
-              </Button>
-              
-              <Button render={<Link href={routes.newArrivals} />} nativeButton={false} size="lg" variant="outline" className="w-full sm:w-auto h-14 px-6 sm:px-10 bg-black/20 backdrop-blur-md border border-white/20 text-white hover:bg-white/10 hover:text-white rounded-none font-medium tracking-wide uppercase text-sm">
-                Yeni Gelenler
-              </Button>
-            </div>
-          </div>
-        </div>
-
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center animate-bounce opacity-70">
-          <span className="text-[10px] tracking-widest uppercase text-white mb-2">
-            Keşfet
-          </span>
-          <ChevronDown className="w-5 h-5 text-white" />
+        <div className="container max-w-screen-2xl mx-auto px-4 md:px-8 grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5 md:gap-6">
+          {[1, 2, 3, 4, 5, 6, 7, 8].map((skeleton) => (
+            <div key={skeleton} className="aspect-[3/4] w-full bg-white/5 animate-pulse" />
+          ))}
         </div>
       </div>
+    )
+  }
 
-      <FeaturedCategories />
-      <TrendingProducts />
+  return (
+    <div className="w-full min-h-screen bg-black pt-10 pb-24 border-t border-white/5">
+      <div className="container max-w-screen-2xl mx-auto px-4 md:px-8 mb-10">
+        <h1 className="text-2xl md:text-3xl lg:text-4xl font-light uppercase tracking-widest text-white">
+          Tüm Ürünler
+        </h1>
+        <p className="mt-3 text-sm sm:text-base text-white/65 max-w-3xl">
+          En yeni ve tüm sezon ürünlerimizi burada bulabilirsiniz.
+        </p>
+        <div className="h-px w-full bg-white/10 mt-6" />
+      </div>
+
+      <div className="container max-w-screen-2xl mx-auto px-4 md:px-8 grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5 md:gap-6">
+        {products.map((product) => (
+          <ProductCard
+            key={product.id}
+            id={product.id}
+            title={product.title}
+            imageUrl={product.imageUrl}
+            colorCount={product.colorCount || (product.variants ? new Set(product.variants.map((v: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => v.color)).size : 0)}
+            stockCount={product.stockCount}
+            originalPrice={product.originalPrice}
+            discountPrice={product.discountPrice}
+            cartPrice={product.cartPrice}
+            productHref={routes.product(product.slug || slugify(product.title || product.id))}
+            trendyolUrl={product.trendyolUrl}
+            shopierUrl={product.shopierUrl}
+            productCode={product.productCode}
+          />
+        ))}
+        {products.length === 0 && (
+          <div className="col-span-full py-20 text-center text-white/50">
+            Şu anda ürün bulunmamaktadır.
+          </div>
+        )}
+      </div>
     </div>
-  );
+  )
 }

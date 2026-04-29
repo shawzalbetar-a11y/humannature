@@ -76,7 +76,7 @@ export async function ProductDetailPage({ slug, sectionName, sectionHref }: Prod
           <div className="w-full lg:w-1/2 min-w-0">
             <ProductGallery images={(product.images as string[]) || (product.imageUrl ? [product.imageUrl as string] : [])} />
             
-            {(product.trendyolUrl || product.shopierUrl) && (
+            {!!(product.trendyolUrl || product.shopierUrl) && (
               <div className="mt-8 p-5 sm:p-6 bg-gradient-to-b from-white/[0.03] to-transparent border border-white/10 rounded-2xl flex flex-col items-center justify-center space-y-5 backdrop-blur-sm animate-in fade-in slide-in-from-bottom-4 duration-700">
                 <div className="flex items-center gap-3">
                   <div className="h-px w-8 bg-white/20" />
@@ -86,7 +86,7 @@ export async function ProductDetailPage({ slug, sectionName, sectionHref }: Prod
                   <div className="h-px w-8 bg-white/20" />
                 </div>
                 <div className="flex flex-col w-full sm:flex-row items-center gap-3 sm:gap-4 justify-center">
-                  {product.trendyolUrl && (
+                  {!!product.trendyolUrl && (
                     <a
                       href={product.trendyolUrl as string}
                       target="_blank"
@@ -98,7 +98,7 @@ export async function ProductDetailPage({ slug, sectionName, sectionHref }: Prod
                       <span className="relative z-10 text-white text-xs sm:text-sm font-bold tracking-wide">Trendyol'da Gör</span>
                     </a>
                   )}
-                  {product.shopierUrl && (
+                  {!!product.shopierUrl && (
                     <a
                       href={product.shopierUrl as string}
                       target="_blank"

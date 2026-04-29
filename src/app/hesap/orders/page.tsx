@@ -8,7 +8,7 @@ import { routes } from "@/lib/routes";
 import { storeConfig } from "@/lib/storeConfig";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
-import { collection, query, where, orderBy, onSnapshot } from "firebase/firestore";
+import { collection, query, orderBy, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 interface OrderItem {
@@ -41,8 +41,7 @@ export default function OrdersPage() {
     if (!user) return;
 
     const q = query(
-      collection(db, "orders"),
-      where("userId", "==", user.uid),
+      collection(db, "users", user.uid, "customer_orders"),
       orderBy("createdAt", "desc")
     );
 
