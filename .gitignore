@@ -25,6 +25,7 @@ coverage/
 playwright-report/
 test-results/
 .vercel
+**/windows/flutter/ephemeral/
 
 # Environment & Secrets
 .env*
